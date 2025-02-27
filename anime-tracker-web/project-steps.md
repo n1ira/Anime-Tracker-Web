@@ -17,9 +17,9 @@ A modern web application to track and automatically download anime episodes via 
 ### Step 1: Project Setup
 
 - [x] Initialize Next.js 15.2.1-canary.0 project
-- [ ] Set up Supabase project and tables
-- [ ] Configure environment variables
-- [ ] Create basic layout with navigation
+- [x] Set up Supabase project and tables
+- [x] Configure environment variables
+- [x] Create basic layout with navigation
 
 ### Step 2: Database Schema Design
 
