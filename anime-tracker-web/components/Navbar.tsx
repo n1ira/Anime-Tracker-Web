@@ -30,14 +30,6 @@ export default function Navbar() {
               </Link>
             </div>
           </div>
-          <div className="flex items-center">
-            <button
-              type="button"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-            >
-              Scan All
-            </button>
-          </div>
         </div>
       </div>
     </nav>

@@ -1,12 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { Show } from "../lib/types";
+import { useAppContext } from "../lib/context";
 
 interface EpisodeListProps {
   selectedShow: Show | null;
 }
 
 export function EpisodeList({ selectedShow }: EpisodeListProps) {
+  const { refreshData, addActivityLog } = useAppContext();
+  const [isToggling, setIsToggling] = useState(false);
+
   if (!selectedShow) {
     return (
       <div className="bg-gray-800 rounded-lg shadow overflow-hidden">
@@ -16,6 +21,38 @@ export function EpisodeList({ selectedShow }: EpisodeListProps) {
       </div>
     );
   }
+
+  // Handle toggling episode status
+  const handleToggleEpisode = async (season: number, episode: number) => {
+    if (isToggling) return; // Prevent multiple clicks
+
+    try {
+      setIsToggling(true);
+      const response = await fetch(`/api/shows/${selectedShow.id}/toggle-episode`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ season, episode }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to toggle episode status');
+      }
+
+      // Refresh the data to get the updated episode lists
+      await refreshData();
+    } catch (error) {
+      console.error('Error toggling episode status:', error);
+      addActivityLog({
+        message: `Error toggling episode status: ${(error as Error).message}`,
+        level: 'error',
+      });
+    } finally {
+      setIsToggling(false);
+    }
+  };
 
   // Combine downloaded and needed episodes for display
   const allEpisodes = [
@@ -53,7 +90,8 @@ export function EpisodeList({ selectedShow }: EpisodeListProps) {
           {allEpisodes.map((ep) => (
             <div
               key={`${ep.season}-${ep.episode}`}
-              className="p-3 flex justify-between items-center hover:bg-gray-700"
+              className="p-3 flex justify-between items-center hover:bg-gray-700 cursor-pointer"
+              onClick={() => handleToggleEpisode(ep.season, ep.episode)}
             >
               <div className="flex items-center">
                 <span className="text-sm">

@@ -68,16 +68,16 @@ A modern web application to track and automatically download anime episodes via 
 
 ### Step 6: Scanning & Download System
 
-- [ ] Implement scanning system:
-    - [ ] Create scan job queue
-    - [ ] Build Nyaa.si scraper
-    - [ ] Process search results
-- [ ] Develop magnet link handling:
-    - [ ] Server endpoint to trigger downloads
-    - [ ] Client-side handler to open magnet URLs
-- [ ] Implement progress indicators:
-    - [ ] Per-show scanning status
-    - [ ] Overall scanning progress
+- [x] Implement scanning system:
+    - [x] Create scan job queue
+    - [x] Build Nyaa.si scraper
+    - [x] Process search results
+- [x] Develop magnet link handling:
+    - [x] Server endpoint to trigger downloads
+    - [x] Client-side handler to open magnet URLs
+- [x] Implement progress indicators:
+    - [x] Per-show scanning status
+    - [x] Overall scanning progress
 
 ### Step 7: UI/UX Refinement
 

@@ -7,6 +7,8 @@ import { EpisodeList } from "../components/EpisodeList";
 import { ActivityLog } from "../components/ActivityLog";
 import { AddShowDialog } from "../components/AddShowDialog";
 import { EditShowDialog } from "../components/EditShowDialog";
+import { MagnetLinkHandler } from "../components/MagnetLinkHandler";
+import { ScanStatus } from "../components/ScanStatus";
 import { Show } from "../lib/types";
 
 export default function Home() {
@@ -14,7 +16,6 @@ export default function Home() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [showToEdit, setShowToEdit] = useState<Show | null>(null);
-  const [isScanningAll, setIsScanningAll] = useState(false);
 
   // Get the selected show
   const selectedShow = state.shows.find(show => show.id === state.selectedShowId) || null;
@@ -190,46 +191,6 @@ export default function Home() {
     }
   };
 
-  // Handle scanning all shows
-  const handleScanAll = async () => {
-    try {
-      setIsScanningAll(true);
-      const response = await fetch('/api/scan', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}),
-      });
-
-      if (!response.ok) {
-        // Check if the response is JSON
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to start scan');
-        } else {
-          // Handle non-JSON response
-          await response.text(); // Read the response but don't use it
-          throw new Error(`Server error: ${response.status} ${response.statusText}`);
-        }
-      }
-
-      addActivityLog({
-        message: 'Scanning all shows',
-        level: 'info',
-      });
-    } catch (error) {
-      console.error('Error scanning all shows:', error);
-      addActivityLog({
-        message: `Error scanning all shows: ${(error as Error).message}`,
-        level: 'error',
-      });
-    } finally {
-      setIsScanningAll(false);
-    }
-  };
-
   // Handle canceling a scan
   const handleCancelScan = async () => {
     try {
@@ -274,24 +235,19 @@ export default function Home() {
           >
             Add Show
           </button>
-          {state.isScanning ? (
+          {state.isScanning && (
             <button 
               className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
               onClick={handleCancelScan}
             >
               Cancel Scan
             </button>
-          ) : (
-            <button 
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-              onClick={handleScanAll}
-              disabled={isScanningAll || state.shows.length === 0}
-            >
-              Scan All
-            </button>
           )}
         </div>
       </div>
+      
+      {/* Scan Status */}
+      <ScanStatus />
       
       <ShowList 
         shows={state.shows}
@@ -305,36 +261,41 @@ export default function Home() {
         onScanShow={handleScanShow}
       />
       
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Episodes</h2>
-        <EpisodeList selectedShow={selectedShow} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h2 className="text-xl font-semibold mb-3">Episodes</h2>
+          <EpisodeList selectedShow={selectedShow} />
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold mb-3">Activity Log</h2>
+          <ActivityLog logs={state.activityLogs} />
+        </div>
       </div>
       
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Activity Log</h2>
-        <ActivityLog logs={state.activityLogs} />
-      </div>
-
-      {/* Dialogs */}
-      <AddShowDialog 
-        isOpen={isAddDialogOpen}
-        onClose={() => setIsAddDialogOpen(false)}
-        onAddShow={handleAddShow}
-        knownShows={state.knownShows}
-      />
-
-      {showToEdit && (
-        <EditShowDialog 
+      {isAddDialogOpen && (
+        <AddShowDialog
+          isOpen={isAddDialogOpen}
+          onClose={() => setIsAddDialogOpen(false)}
+          onAddShow={handleAddShow}
+          knownShows={state.knownShows}
+        />
+      )}
+      
+      {isEditDialogOpen && showToEdit && (
+        <EditShowDialog
           isOpen={isEditDialogOpen}
           onClose={() => {
             setIsEditDialogOpen(false);
             setShowToEdit(null);
           }}
-          onUpdateShow={(showId, showData) => handleEditShow(showId, showData)}
-          onResetShow={(showId) => handleDeleteShow(showId)}
+          onUpdateShow={handleEditShow}
+          onResetShow={handleDeleteShow}
           show={showToEdit}
         />
       )}
+      
+      {/* Magnet Link Handler */}
+      <MagnetLinkHandler />
     </div>
   );
 }

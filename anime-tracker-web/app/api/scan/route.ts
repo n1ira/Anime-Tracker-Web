@@ -5,6 +5,7 @@ import { activityLogs } from "../../../db/schema/activity_logs";
 import { eq } from "drizzle-orm";
 import { searchNyaa, parseTorrentTitle, matchesTorrent } from "../../../lib/nyaa";
 import { Show } from "../../../lib/types";
+import { updateFoundMagnetLinks, clearFoundMagnetLinks } from "./magnets/route";
 
 // Global state to track ongoing scans
 let isScanning = false;
@@ -43,6 +44,9 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
+
+    // Clear any previous magnet links
+    clearFoundMagnetLinks();
 
     const body = await request.json();
     const showId = body.showId ? parseInt(body.showId) : null;
@@ -96,7 +100,10 @@ export async function POST(request: NextRequest) {
     });
 
     // Start the scan process asynchronously
-    scanShows(showsToScan).catch((error) => {
+    scanShows(showsToScan).then(magnetLinks => {
+      // Store the found magnet links when scan completes
+      updateFoundMagnetLinks(magnetLinks);
+    }).catch((error) => {
       console.error("Error during scan:", error);
     });
 
@@ -145,6 +152,7 @@ async function scanShows(showsToScan: Show[]) {
     const knownShowsResult = await db.query.knownShows.findMany();
     
     let totalProcessed = 0;
+    const foundMagnetLinks: { showId: number; showName: string; season: number; episode: number; magnetLink: string }[] = [];
 
     // Process each show
     for (let i = 0; i < showsToScan.length; i++) {
@@ -164,16 +172,23 @@ async function scanShows(showsToScan: Show[]) {
         level: "info",
       });
 
+      // Sort needed episodes to process in order
+      const sortedNeededEpisodes = [...show.needed_episodes].sort((a, b) => {
+        if (a[0] !== b[0]) return a[0] - b[0]; // Sort by season first
+        return a[1] - b[1]; // Then by episode
+      });
+
       // Process each needed episode
-      for (let j = 0; j < show.needed_episodes.length; j++) {
+      for (let j = 0; j < sortedNeededEpisodes.length; j++) {
         if (!isScanning) {
           // Scan was cancelled
           break;
         }
 
-        const [season, episode] = show.needed_episodes[j];
+        const [season, episode] = sortedNeededEpisodes[j];
         
         // Update progress
+        totalProcessed++;
         currentScanJob.progress.current = totalProcessed;
         
         // Log that we're searching for this episode
@@ -241,74 +256,70 @@ async function scanShows(showsToScan: Show[]) {
                     })
                     .where(eq(shows.id, show.id));
                   
-                  // Return the magnet link
-                  return {
-                    success: true,
-                    magnetLink: result.magnetLink,
-                  };
+                  // Store the magnet link to be opened by the client
+                  foundMagnetLinks.push({
+                    showId: show.id,
+                    showName: show.names[0],
+                    season,
+                    episode,
+                    magnetLink: result.magnetLink
+                  });
+                  
+                  // Continue to the next episode for this show
+                  break;
                 }
               }
             } catch (error) {
-              console.error(`Error searching for ${query}:`, error);
-              
-              // Log the error
+              console.error(`Error searching Nyaa for ${query}:`, error);
               await db.insert(activityLogs).values({
-                message: `Error searching for ${query}: ${(error as Error).message}`,
+                message: `Error searching for ${show.names[0]} S${season}E${episode}: ${(error as Error).message}`,
                 level: "error",
               });
-              
-              // Wait a bit before trying the next query to avoid rate limiting
-              await new Promise(resolve => setTimeout(resolve, 2000));
             }
           }
         }
 
         if (!found) {
-          // Log that we couldn't find this episode
+          // If not found, stop searching for this show (assume later episodes aren't available yet)
           await db.insert(activityLogs).values({
-            message: `No match found for ${show.names[0]} S${season}E${episode}`,
-            level: "warning",
+            message: `No match found for ${show.names[0]} S${season}E${episode}, stopping search for this show`,
+            level: "info",
           });
+          break;
         }
-
-        totalProcessed++;
-        
-        // Wait a bit before processing the next episode to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
-      // Update the show's last checked timestamp
-      await db
-        .update(shows)
-        .set({
-          last_checked: new Date(),
-        })
+      // Update last checked timestamp
+      await db.update(shows)
+        .set({ last_checked: new Date() })
         .where(eq(shows.id, show.id));
     }
 
+    // Complete the scan
+    isScanning = false;
+    
+    // Store the found magnet links in the job status
+    currentScanJob.progress.current = currentScanJob.progress.total;
+    
     // Log completion
     await db.insert(activityLogs).values({
-      message: `Scan completed. Processed ${totalProcessed} episodes.`,
-      level: "info",
+      message: `Scan completed with ${foundMagnetLinks.length} episodes found`,
+      level: "success",
     });
+    
+    return foundMagnetLinks;
   } catch (error) {
     console.error("Error during scan:", error);
     
     // Log the error
     await db.insert(activityLogs).values({
-      message: `Scan error: ${(error as Error).message}`,
+      message: `Error during scan: ${(error as Error).message}`,
       level: "error",
     });
-  } finally {
-    // Reset scan state
+    
+    // Reset scanning state
     isScanning = false;
-    currentScanJob = {
-      showId: null,
-      progress: {
-        current: 0,
-        total: 0,
-        currentShow: null,
-      },
-    };
+    
+    throw error;
   }
 } 

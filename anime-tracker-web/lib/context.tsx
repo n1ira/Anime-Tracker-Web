@@ -24,7 +24,7 @@ interface AppContextType {
   addActivityLog: (log: Omit<ActivityLog, 'id' | 'timestamp'>) => void;
   setIsScanning: (isScanning: boolean) => void;
   setScanProgress: (progress: AppState['scanProgress']) => void;
-  refreshData: () => Promise<void>;
+  refreshData: (options?: { refreshShows?: boolean; refreshLogs?: boolean }) => Promise<void>;
 }
 
 const initialState: AppState = {
@@ -67,48 +67,52 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const refreshData = useCallback(async () => {
+  const refreshData = useCallback(async (options?: { refreshShows?: boolean; refreshLogs?: boolean }) => {
     try {
-      // Fetch shows
-      try {
-        const showsResponse = await fetch('/api/shows');
-        if (showsResponse.ok) {
-          const shows = await showsResponse.json();
-          setState(prevState => ({ ...prevState, shows }));
-        } else {
-          console.error('Failed to fetch shows:', showsResponse.status, showsResponse.statusText);
+      // Fetch shows if not specified or if refreshShows is true
+      if (!options || options.refreshShows !== false) {
+        try {
+          const showsResponse = await fetch('/api/shows');
+          if (showsResponse.ok) {
+            const shows = await showsResponse.json();
+            setState(prevState => ({ ...prevState, shows }));
+          } else {
+            console.error('Failed to fetch shows:', showsResponse.status, showsResponse.statusText);
+          }
+        } catch (showsError) {
+          console.error('Error fetching shows:', showsError);
         }
-      } catch (showsError) {
-        console.error('Error fetching shows:', showsError);
+        
+        // Fetch known shows
+        try {
+          const knownShowsResponse = await fetch('/api/known-shows');
+          if (knownShowsResponse.ok) {
+            const knownShows = await knownShowsResponse.json();
+            setState(prevState => ({ ...prevState, knownShows }));
+          } else {
+            console.error('Failed to fetch known shows:', knownShowsResponse.status, knownShowsResponse.statusText);
+          }
+        } catch (knownShowsError) {
+          console.error('Error fetching known shows:', knownShowsError);
+        }
       }
       
-      // Fetch known shows
-      try {
-        const knownShowsResponse = await fetch('/api/known-shows');
-        if (knownShowsResponse.ok) {
-          const knownShows = await knownShowsResponse.json();
-          setState(prevState => ({ ...prevState, knownShows }));
-        } else {
-          console.error('Failed to fetch known shows:', knownShowsResponse.status, knownShowsResponse.statusText);
+      // Fetch recent logs if not specified or if refreshLogs is true
+      if (!options || options.refreshLogs !== false) {
+        try {
+          const logsResponse = await fetch('/api/logs?limit=50');
+          if (logsResponse.ok) {
+            const logs = await logsResponse.json();
+            setState((prevState) => ({
+              ...prevState,
+              activityLogs: logs,
+            }));
+          } else {
+            console.error('Failed to fetch logs:', logsResponse.status, logsResponse.statusText);
+          }
+        } catch (logsError) {
+          console.error('Error fetching logs:', logsError);
         }
-      } catch (knownShowsError) {
-        console.error('Error fetching known shows:', knownShowsError);
-      }
-      
-      // Fetch recent logs
-      try {
-        const logsResponse = await fetch('/api/logs?limit=50');
-        if (logsResponse.ok) {
-          const logs = await logsResponse.json();
-          setState((prevState) => ({
-            ...prevState,
-            activityLogs: logs,
-          }));
-        } else {
-          console.error('Failed to fetch logs:', logsResponse.status, logsResponse.statusText);
-        }
-      } catch (logsError) {
-        console.error('Error fetching logs:', logsError);
       }
     } catch (error) {
       console.error('Failed to refresh data:', error);
