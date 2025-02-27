@@ -47,17 +47,17 @@ A modern web application to track and automatically download anime episodes via 
 
 ### Step 4: Core Functionality Implementation
 
-- [ ] Implement state management
-    - [ ] Context for application state
-    - [ ] Local storage fallback
-- [ ] Create API endpoints:
-    - [ ] `/api/shows` - CRUD operations
-    - [ ] `/api/known-shows` - CRUD operations
-    - [ ] `/api/scan` - Scan endpoints
-- [ ] Implement utility functions:
-    - [ ] `normalizeShowName`
-    - [ ] `calculateAbsoluteEpisode`
-    - [ ] `recalculateNeededEpisodes`
+- [x] Implement state management
+    - [x] Context for application state
+    - [x] Local storage fallback
+- [x] Create API endpoints:
+    - [x] `/api/shows` - CRUD operations
+    - [x] `/api/known-shows` - CRUD operations
+    - [x] `/api/scan` - Scan endpoints
+- [x] Implement utility functions:
+    - [x] `normalizeShowName`
+    - [x] `calculateAbsoluteEpisode`
+    - [x] `recalculateNeededEpisodes`
 
 ### Step 5: Title Parsing with OpenAI
 
