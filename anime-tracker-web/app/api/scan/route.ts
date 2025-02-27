@@ -205,7 +205,7 @@ async function scanShows(showsToScan: Show[]) {
               // Process results
               for (const result of results) {
                 // Parse the torrent title
-                const parsedTorrent = await parseTorrentTitle(result.title);
+                const { data: parsedTorrent } = await parseTorrentTitle(result.title);
                 
                 if (!parsedTorrent) continue;
                 

@@ -61,10 +61,10 @@ A modern web application to track and automatically download anime episodes via 
 
 ### Step 5: Title Parsing with OpenAI
 
-- [ ] Create server-side function for parsing torrent titles
-    - [ ] Implement OpenAI API integration
-    - [ ] Handle JSON parsing and normalization
-    - [ ] Add caching to minimize API calls
+- [x] Create server-side function for parsing torrent titles
+    - [x] Implement OpenAI API integration
+    - [x] Handle JSON parsing and normalization
+    - [x] Add caching to minimize API calls
 
 ### Step 6: Scanning & Download System
 

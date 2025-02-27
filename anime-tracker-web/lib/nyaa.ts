@@ -1,5 +1,6 @@
 import { Show, KnownShow } from './types';
 import { normalizeShowName, calculateAbsoluteEpisode } from './utils';
+import { getCacheItem, setCacheItem, initCache } from './cache';
 
 interface NyaaResult {
   title: string;
@@ -22,6 +23,11 @@ interface ParsedTorrent {
   batchStart?: number;
   batchEnd?: number;
 }
+
+// Initialize the cache when this module is imported
+initCache().catch(error => {
+  console.error('Failed to initialize title parsing cache:', error);
+});
 
 /**
  * Search Nyaa.si for a specific query
@@ -84,10 +90,19 @@ export async function searchNyaa(query: string, category: string = '1_2'): Promi
 }
 
 /**
- * Parse a torrent title using OpenAI API
+ * Parse a torrent title using OpenAI API with caching
  */
-export async function parseTorrentTitle(title: string): Promise<ParsedTorrent | null> {
+export async function parseTorrentTitle(title: string): Promise<{ data: ParsedTorrent | null; fromCache: boolean }> {
   try {
+    // Check if we have this title in the cache
+    const cachedResult = getCacheItem<ParsedTorrent>(title);
+    if (cachedResult) {
+      console.log(`Cache hit for title: ${title}`);
+      return { data: cachedResult, fromCache: true };
+    }
+    
+    console.log(`Cache miss for title: ${title}, calling OpenAI API`);
+    
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       throw new Error('OpenAI API key is not set');
@@ -150,10 +165,10 @@ export async function parseTorrentTitle(title: string): Promise<ParsedTorrent | 
     
     // Validate the parsed data
     if (!parsedData.showName || !parsedData.episode) {
-      return null;
+      return { data: null, fromCache: false };
     }
     
-    return {
+    const result = {
       showName: parsedData.showName,
       season: parsedData.season || 1,
       episode: parsedData.episode,
@@ -163,9 +178,14 @@ export async function parseTorrentTitle(title: string): Promise<ParsedTorrent | 
       batchStart: parsedData.batchStart,
       batchEnd: parsedData.batchEnd,
     };
+    
+    // Store the result in the cache
+    setCacheItem(title, result);
+    
+    return { data: result, fromCache: false };
   } catch (error) {
     console.error('Error parsing torrent title:', error);
-    return null;
+    return { data: null, fromCache: false };
   }
 }
 
