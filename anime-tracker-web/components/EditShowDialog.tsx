@@ -1,0 +1,278 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Show } from "../lib/types";
+
+interface EditShowDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdateShow: (showId: number, showData: {
+    names: string[];
+    start_season: number;
+    start_episode: number;
+    end_season: number;
+    end_episode: number;
+    quality: string;
+  }) => Promise<void>;
+  onResetShow: (showId: number) => Promise<void>;
+  show: Show | null;
+}
+
+export function EditShowDialog({
+  isOpen,
+  onClose,
+  onUpdateShow,
+  onResetShow,
+  show,
+}: EditShowDialogProps) {
+  const [primaryName, setPrimaryName] = useState("");
+  const [alternativeNames, setAlternativeNames] = useState<string[]>([]);
+  const [newAltName, setNewAltName] = useState("");
+  const [startSeason, setStartSeason] = useState(1);
+  const [startEpisode, setStartEpisode] = useState(1);
+  const [endSeason, setEndSeason] = useState(1);
+  const [endEpisode, setEndEpisode] = useState(12);
+  const [quality, setQuality] = useState("1080p");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
+  // Update form when show changes
+  useEffect(() => {
+    if (show) {
+      setPrimaryName(show.names[0] || "");
+      setAlternativeNames(show.names.slice(1) || []);
+      setStartSeason(show.start_season);
+      setStartEpisode(show.start_episode);
+      setEndSeason(show.end_season);
+      setEndEpisode(show.end_episode);
+      setQuality(show.quality);
+    }
+  }, [show]);
+
+  const handleClose = () => {
+    onClose();
+  };
+
+  const handleAddAltName = () => {
+    if (newAltName.trim() && !alternativeNames.includes(newAltName.trim())) {
+      setAlternativeNames([...alternativeNames, newAltName.trim()]);
+      setNewAltName("");
+    }
+  };
+
+  const handleRemoveAltName = (name: string) => {
+    setAlternativeNames(alternativeNames.filter((n) => n !== name));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!show || !primaryName.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      await onUpdateShow(show.id, {
+        names: [primaryName.trim(), ...alternativeNames],
+        start_season: startSeason,
+        start_episode: startEpisode,
+        end_season: endSeason,
+        end_episode: endEpisode,
+        quality,
+      });
+      handleClose();
+    } catch (error) {
+      console.error("Failed to update show:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!show) return;
+    
+    if (!confirm("Are you sure you want to reset all downloaded episodes for this show?")) {
+      return;
+    }
+    
+    setIsResetting(true);
+    try {
+      await onResetShow(show.id);
+      handleClose();
+    } catch (error) {
+      console.error("Failed to reset show:", error);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  if (!isOpen || !show) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-gray-800 rounded-lg shadow-lg w-full max-w-md p-6">
+        <h2 className="text-xl font-semibold mb-4">Edit Show</h2>
+        
+        <form onSubmit={handleSubmit}>
+          {/* Primary Name */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Primary Name *
+            </label>
+            <input
+              type="text"
+              className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={primaryName}
+              onChange={(e) => setPrimaryName(e.target.value)}
+              required
+            />
+          </div>
+          
+          {/* Alternative Names */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Alternative Names
+            </label>
+            <div className="flex">
+              <input
+                type="text"
+                className="flex-1 bg-gray-700 border border-gray-600 rounded-l-md py-2 px-3 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={newAltName}
+                onChange={(e) => setNewAltName(e.target.value)}
+                placeholder="Add alternative name"
+              />
+              <button
+                type="button"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-md"
+                onClick={handleAddAltName}
+              >
+                Add
+              </button>
+            </div>
+            
+            {alternativeNames.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {alternativeNames.map((name) => (
+                  <div
+                    key={name}
+                    className="bg-gray-700 text-gray-300 px-2 py-1 rounded-md flex items-center text-sm"
+                  >
+                    {name}
+                    <button
+                      type="button"
+                      className="ml-2 text-gray-400 hover:text-red-500"
+                      onClick={() => handleRemoveAltName(name)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {/* Season and Episode Range */}
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Start Season
+              </label>
+              <input
+                type="number"
+                min="1"
+                className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={startSeason}
+                onChange={(e) => setStartSeason(Number(e.target.value))}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                Start Episode
+              </label>
+              <input
+                type="number"
+                min="1"
+                className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={startEpisode}
+                onChange={(e) => setStartEpisode(Number(e.target.value))}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                End Season
+              </label>
+              <input
+                type="number"
+                min="1"
+                className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={endSeason}
+                onChange={(e) => setEndSeason(Number(e.target.value))}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">
+                End Episode
+              </label>
+              <input
+                type="number"
+                min="1"
+                className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={endEpisode}
+                onChange={(e) => setEndEpisode(Number(e.target.value))}
+                required
+              />
+            </div>
+          </div>
+          
+          {/* Quality */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Quality
+            </label>
+            <select
+              className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={quality}
+              onChange={(e) => setQuality(e.target.value)}
+            >
+              <option value="1080p">1080p</option>
+              <option value="720p">720p</option>
+              <option value="480p">480p</option>
+            </select>
+          </div>
+          
+          {/* Reset Button */}
+          <div className="mb-6">
+            <button
+              type="button"
+              className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md disabled:opacity-50"
+              onClick={handleReset}
+              disabled={isResetting || isSubmitting}
+            >
+              {isResetting ? "Resetting..." : "Reset Downloaded Episodes"}
+            </button>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-3">
+            <button
+              type="button"
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-md"
+              onClick={handleClose}
+              disabled={isSubmitting || isResetting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50"
+              disabled={isSubmitting || isResetting || !primaryName.trim()}
+            >
+              {isSubmitting ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+} 

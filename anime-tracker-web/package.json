@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "db:generate": "npx drizzle-kit generate",
-    "db:migrate": "npx drizzle-kit migrate"
+    "db:migrate": "npx drizzle-kit migrate",
+    "db:verify": "npx tsx db/verify-schema.ts"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
@@ -33,6 +34,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.2.1-canary.0",
     "tailwindcss": "^4",
+    "tsx": "^4.19.3",
     "typescript": "^5"
   }
 }

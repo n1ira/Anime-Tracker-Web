@@ -7,6 +7,6 @@ globs: *
 - Work on whatever step(s) I tell you to work on and only work on those steps at once
 - Once those steps are done mark as completed, then stop and wait for further instructions
 - Your commands are using CMD, not PowerShell
-- We are using Next.js 15.2.1-canary.0
+- We are using Next.js 15.2.1-canary.0, supabase with drizzle
 - The page needs to be in dark mode
 - The old Python version which this app is based on is in [anime_tracker.py](mdc:anime_tracker.py)

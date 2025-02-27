@@ -23,27 +23,27 @@ A modern web application to track and automatically download anime episodes via 
 
 ### Step 2: Database Schema Design
 
-- [ ] Create tables in Supabase:
-    - [ ] `shows` - Store tracked shows
-    - [ ] `known_shows` - Store show metadata like episodes per season
-    - [ ] `episodes` - Store episode status (downloaded/needed)
-    - [ ] `activity_logs` - Store application activity
+- [x] Create tables in Supabase:
+    - [x] `shows` - Store tracked shows
+    - [x] `known_shows` - Store show metadata like episodes per season
+    - [x] `episodes` - Store episode status (downloaded/needed)
+    - [x] `activity_logs` - Store application activity
 
 ### Step 3: Core Components Development
 
-- [ ] Create `ShowList` component
-    - [ ] Display tracked shows with status
-    - [ ] Add selection functionality
-- [ ] Develop `EpisodeList` component
-    - [ ] Show episodes for selected show
-    - [ ] Indicate downloaded/needed status
-- [ ] Implement `ActivityLog` component
-    - [ ] Real-time log display
-    - [ ] Automatic scrolling
-- [ ] Create dialog components:
-    - [ ] `AddShowDialog`
-    - [ ] `EditShowDialog`
-    - [ ] `EditKnownShowsDialog`
+- [x] Create `ShowList` component
+    - [x] Display tracked shows with status
+    - [x] Add selection functionality
+- [x] Develop `EpisodeList` component
+    - [x] Show episodes for selected show
+    - [x] Indicate downloaded/needed status
+- [x] Implement `ActivityLog` component
+    - [x] Real-time log display
+    - [x] Automatic scrolling
+- [x] Create dialog components:
+    - [x] `AddShowDialog`
+    - [x] `EditShowDialog`
+    - [x] `EditKnownShowsDialog`
 
 ### Step 4: Core Functionality Implementation
 
@@ -189,6 +189,8 @@ Known shows will follow:
 ```
 
 ### Scanning Logic
+
+Look at anime_tracker.py for how the logic works.
 
 1. Start scan for a show or all shows
 2. For each show, retrieve needed episodes
